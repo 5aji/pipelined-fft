@@ -47,7 +47,7 @@ wire [WIDTH-1:0] product_re, product_im;
 
 // instantiate complex multiplier:
 // calculates b * twiddle and stores in product
-cplx_mul twiddle_mul (clk, b_re, b_im, twiddle_re, twiddle_im, product_re, product_im);
+cplx_mul #(WIDTH=WIDTH) twiddle_mul (clk, b_re, b_im, twiddle_re, twiddle_im, product_re, product_im);
 always @(posedge clk) begin
 	// latch output registers with our sums.
 	y0_re <= a_re + product_re;
