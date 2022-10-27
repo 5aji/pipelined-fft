@@ -26,7 +26,7 @@ wire [15:0] inter_im [7:0][1:0]; // 2d array of 16-bit values.
 // 8 values, real-im-real-im, 4 pairs repeating.
 
 reg [15:0] tw_f [7:0];
-
+initial $readmemh("fft8.mem", tw_f);
 
 
 // 1st stage, adjacent inputs get butterflied.
@@ -35,12 +35,44 @@ genvar i;
 generate for (i = 0; i < 3; i = i + 1 ) begin
 	butterfly bf_layer1(clk, 
 		x_re[2 * i], x_im[2 * i], x_re[2*i+1],x_im[2*i+1], 
-		tw_f[0], tw_f[0], 
+		tw_f[0], tw_f[1], 
 		inter_re[2*i][0], inter_im[2*i][0], inter_re[2*i+1][0], inter_im[2*i+1][0]
 	);
 end
 endgenerate
 
+// 2nd stage.
+
+generate for (i = 0; i < 2; i = i + 1) begin
+	butterfly bf1_layer2(clk,
+		inter_re[4 * i][0], inter_im[4*i][0],
+		inter_re[4*i+2][0], inter_im[4*i+2][0],
+		tw_f[0], tw_f[1],
+		inter_re[4 * i][1], inter_im[4*i][1],
+		inter_re[4*i+2][1], inter_im[4*i+2][1]
+	);
+	butterfly bf2_layer2(clk,
+		inter_re[4*i+1][0], inter_im[4*i+1][0],
+		inter_re[4*i+3][0], inter_im[4*i+3][0],
+		tw_f[2], tw_f[3],
+		inter_re[4*i+1][1], inter_im[4*i+1][1],
+		inter_re[4*i+3][1], inter_im[4*i+3][1]
+	);
+
+end
+endgenerate
+
+// 3rd stage.
+generate for (i = 0; i < 3; i = i + 1 ) begin
+	butterfly bf_layer3(clk, 
+		inter_re[i][1], inter_im[i][1],
+		inter_re[i+4][1], inter_im[i+4][1],
+		 
+		tw_f[i], tw_f[i+1], 
+		y_re[i], y_im[i], y_re[i+4], y_im[i+4]
+	);
+end
+endgenerate
 
 
-endmodule;
+endmodule
