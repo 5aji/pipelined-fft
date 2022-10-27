@@ -17,22 +17,8 @@
 // (x + yi) (u + vi) = (xu - yv) + (xv + yu)i
 // We implement this part in a separate module. This is because in hardware
 // implementation, we may use special blocks on the FPGA to improve
-// performance.
+// performance. See cplx_mul.v for a simple version for simulation.
 
-
-module cplx_mul #(
-	parameter WIDTH=16
-) (
-	input clk,
-	input [WIDTH-1:0] a_re, a_im, b_re, b_im,
-	output reg [WIDTH-1:0] y0_re, y0_im
-);
-
-always @(posedge clk) begin
-	y0_re <= a_re * b_re - a_im * b_im;
-	y0_im <= a_re * b_im + a_im * b_re;
-end
-endmodule
 
 module butterfly #(
 	parameter WIDTH=16
@@ -47,7 +33,7 @@ wire [WIDTH-1:0] product_re, product_im;
 
 // instantiate complex multiplier:
 // calculates b * twiddle and stores in product
-cplx_mul #(WIDTH=WIDTH) twiddle_mul (clk, b_re, b_im, twiddle_re, twiddle_im, product_re, product_im);
+cplx_mul #(.WIDTH(WIDTH)) twiddle_mul (clk, b_re, b_im, twiddle_re, twiddle_im, product_re, product_im);
 always @(posedge clk) begin
 	// latch output registers with our sums.
 	y0_re <= a_re + product_re;
