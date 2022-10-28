@@ -18,6 +18,7 @@ def trunc(num, bits=16, f_point=8):
 
 # Helpers to set and get the values from the radix-2 butterfly.
 async def set_inputs(dut, a,b,twiddle):
+    dut._log.info(f"[setting inputs] a = {a}, b= {b}, twiddle={twiddle}")
     dut.a_re.value = int(fl2b(a.real,16,8),2)
     dut.a_im.value = int(fl2b(a.imag,16,8),2)
     dut.b_re.value = int(fl2b(b.real,16,8),2)
@@ -28,6 +29,7 @@ async def set_inputs(dut, a,b,twiddle):
 async def get_outputs(dut):
     y0 = b2fl(str(dut.y0_re.value), 16,8) + 1j * b2fl(str(dut.y0_im.value), 16,8)
     y1 = b2fl(str(dut.y1_re.value), 16,8) + 1j * b2fl(str(dut.y1_im.value), 16,8)
+    dut._log.info(f"[got outpus] y0 = {y0}, y1 = {y1}")
     return y0,y1
 
 async def cplx_close(a,b, **kwargs):
@@ -63,6 +65,25 @@ async def test_random(dut):
         a = await random_cplx(-8,8)
         b = await random_cplx(-8,8)
         twiddle = tw.twiddle(128, random.randrange(128))
+        twiddle = trunc(twiddle[0]) + 1j * trunc(twiddle[1])
+        await set_inputs(dut, a,b,twiddle)
+
+        await RisingEdge(dut.clk)
+        await ReadWrite()
+
+        y0, y1 = await get_outputs(dut)
+
+        assert await cplx_close(y0,a + b * twiddle, abs_tol=4*0.00390625)
+        assert await cplx_close(y1,a - b * twiddle, abs_tol=4*0.00390625)
+
+@cocotb.test()
+async def test_zero(dut):
+    cocotb.start_soon(Clock(dut.clk, 1, 'ns').start())
+
+    for _ in range(1000):
+        a = 0
+        b = random.uniform(-8,8)
+        twiddle = tw.twiddle(8, 1)
         twiddle = trunc(twiddle[0]) + 1j * trunc(twiddle[1])
         await set_inputs(dut, a,b,twiddle)
 
