@@ -34,8 +34,9 @@ wire [WIDTH-1:0] product_re, product_im;
 // instantiate complex multiplier:
 // calculates b * twiddle and stores in product
 cplx_mul #(.WIDTH(WIDTH)) twiddle_mul (clk, b_re, b_im, twiddle_re, twiddle_im, product_re, product_im);
-always @(posedge clk) begin
-	// latch output registers with our sums.
+always @(*) begin // we don't clock this since it's just adders. Easy to synthesize combinationally.
+	// the complex multiplier will act as our registers for our pipeline.
+	// this can be confusing. Be careful when reasoning about it!
 	y0_re <= a_re + product_re;
 	y0_im <= a_im + product_im;
 	

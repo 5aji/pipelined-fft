@@ -25,8 +25,8 @@ wire [15:0] inter_im [7:0][1:0]; // 2d array of 16-bit values.
 // twiddles.
 // 8 values, real-im-real-im, 4 pairs repeating.
 
-reg [15:0] tw_f [7:0];
-initial $readmemh("fft8.mem", tw_f);
+reg [15:0] tw_f [15:0];
+initial $readmemb("rtl/fft8.mem", tw_f);
 
 
 // 1st stage, adjacent inputs get butterflied.
