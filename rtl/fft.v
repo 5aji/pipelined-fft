@@ -19,8 +19,10 @@ module basic_fft8(
 // intermediate value wires.
 // with N=8, we have 3 layers. last one is output layer. first one is input, 
 // so only 2 intermediate layers.
-wire [15:0] inter_re [7:0][1:0]; // 2d array of 16-bit values.
-wire [15:0] inter_im [7:0][1:0]; // 2d array of 16-bit values.
+wire [15:0] inter_re_0 [7:0]; 
+wire [15:0] inter_im_0 [7:0]; 
+wire [15:0] inter_re_1 [7:0]; 
+wire [15:0] inter_im_1 [7:0]; 
 
 // twiddles.
 // 8 values, real-im-real-im, 4 pairs repeating.
@@ -32,11 +34,11 @@ initial $readmemb("rtl/fft8.mem", tw_f);
 // 1st stage, adjacent inputs get butterflied.
 
 genvar i;
-generate for (i = 0; i < 3; i = i + 1 ) begin
+generate for (i = 0; i < 4; i = i + 1 ) begin
 	butterfly bf_layer1(clk, 
 		x_re[2 * i], x_im[2 * i], x_re[2*i+1],x_im[2*i+1], 
 		tw_f[0], tw_f[1], 
-		inter_re[2*i][0], inter_im[2*i][0], inter_re[2*i+1][0], inter_im[2*i+1][0]
+		inter_re_0[2*i], inter_im_0[2*i], inter_re_0[2*i+1], inter_im_0[2*i+1]
 	);
 end
 endgenerate
@@ -45,28 +47,42 @@ endgenerate
 
 generate for (i = 0; i < 2; i = i + 1) begin
 	butterfly bf1_layer2(clk,
-		inter_re[4 * i][0], inter_im[4*i][0],
-		inter_re[4*i+2][0], inter_im[4*i+2][0],
+		inter_re_0[4 * i], inter_im_0[4*i],
+		inter_re_0[4*i+2], inter_im_0[4*i+2],
 		tw_f[0], tw_f[1],
-		inter_re[4 * i][1], inter_im[4*i][1],
-		inter_re[4*i+2][1], inter_im[4*i+2][1]
+		inter_re_1[4 * i], inter_im_1[4*i],
+		inter_re_1[4*i+2], inter_im_1[4*i+2]
 	);
 	butterfly bf2_layer2(clk,
-		inter_re[4*i+1][0], inter_im[4*i+1][0],
-		inter_re[4*i+3][0], inter_im[4*i+3][0],
-		tw_f[2], tw_f[3],
-		inter_re[4*i+1][1], inter_im[4*i+1][1],
-		inter_re[4*i+3][1], inter_im[4*i+3][1]
+		inter_re_0[4*i+1], inter_im_0[4*i+1],
+		inter_re_0[4*i+3], inter_im_0[4*i+3],
+		tw_f[4], tw_f[5],
+		inter_re_1[4*i+1], inter_im_1[4*i+1],
+		inter_re_1[4*i+3], inter_im_1[4*i+3]
 	);
 
 end
 endgenerate
+/* butterfly bf1_layer2_0(clk, */
+/* 	inter_re[0][0], inter_im[0][0], */
+/* 	inter_re[2][0], inter_im[2][0], */
+/* 	tw_f[0], tw_f[1], */
+/* 	inter_re[0][1], inter_im[0][1], */
+/* 	inter_re[2][1], inter_im[2][1] */
+/* ); */
+/* butterfly bf1_layer2_1(clk, */
+/* 	inter_re[1][0], inter_im[1][0], */
+/* 	inter_re[3][0], inter_im[3][0], */
+/* 	tw_f[4], tw_f[5], */
+/* 	inter_re[1][1], inter_im[1][1], */
+/* 	inter_re[3][1], inter_im[3][1] */
+/* ); */
 
 // 3rd stage.
-generate for (i = 0; i < 3; i = i + 1 ) begin
+generate for (i = 0; i < 4; i = i + 1 ) begin
 	butterfly bf_layer3(clk, 
-		inter_re[i][1], inter_im[i][1],
-		inter_re[i+4][1], inter_im[i+4][1],
+		inter_re_1[i], inter_im_1[i],
+		inter_re_1[i+4], inter_im_1[i+4],
 		 
 		tw_f[i], tw_f[i+1], 
 		y_re[i], y_im[i], y_re[i+4], y_im[i+4]
