@@ -37,11 +37,11 @@ cplx_mul #(.WIDTH(WIDTH)) twiddle_mul (clk, b_re, b_im, twiddle_re, twiddle_im, 
 always @(*) begin // we don't clock this since it's just adders. Easy to synthesize combinationally.
 	// the complex multiplier will act as our registers for our pipeline.
 	// this can be confusing. Be careful when reasoning about it!
-	y0_re <= a_re + product_re;
-	y0_im <= a_im + product_im;
+	y0_re = a_re + product_re;
+	y0_im = a_im + product_im;
 	
-	y1_re <= a_re - product_re;
-	y1_im <= a_im - product_im;
+	y1_re = a_re - product_re;
+	y1_im = a_im - product_im;
 end
 
 endmodule 
