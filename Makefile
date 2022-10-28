@@ -4,7 +4,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
-VERILOG_SOURCES += $(wildcard $(PWD)/rtl/*.v)
+VERILOG_SOURCES += rtl/butterfly.v rtl/cplx_mul.v rtl/fft.v
 # use VHDL_SOURCES for VHDL files
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
