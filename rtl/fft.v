@@ -63,20 +63,6 @@ generate for (i = 0; i < 2; i = i + 1) begin
 
 end
 endgenerate
-/* butterfly bf1_layer2_0(clk, */
-/* 	inter_re[0][0], inter_im[0][0], */
-/* 	inter_re[2][0], inter_im[2][0], */
-/* 	tw_f[0], tw_f[1], */
-/* 	inter_re[0][1], inter_im[0][1], */
-/* 	inter_re[2][1], inter_im[2][1] */
-/* ); */
-/* butterfly bf1_layer2_1(clk, */
-/* 	inter_re[1][0], inter_im[1][0], */
-/* 	inter_re[3][0], inter_im[3][0], */
-/* 	tw_f[4], tw_f[5], */
-/* 	inter_re[1][1], inter_im[1][1], */
-/* 	inter_re[3][1], inter_im[3][1] */
-/* ); */
 
 // 3rd stage.
 generate for (i = 0; i < 4; i = i + 1 ) begin

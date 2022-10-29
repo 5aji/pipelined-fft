@@ -24,12 +24,12 @@ module butterfly #(
 	parameter WIDTH=16
 ) (
 	input clk,
-	input [WIDTH-1:0] a_re, a_im, b_re, b_im, twiddle_re, twiddle_im,
-	output reg [WIDTH-1:0] y0_re, y0_im, y1_re, y1_im
+	input signed [WIDTH-1:0] a_re, a_im, b_re, b_im, twiddle_re, twiddle_im,
+	output reg signed [WIDTH-1:0] y0_re, y0_im, y1_re, y1_im
 );
 
 // store multiplication terms.
-wire [WIDTH-1:0] product_re, product_im;
+wire signed [WIDTH-1:0] product_re, product_im;
 
 // instantiate complex multiplier:
 // calculates b * twiddle and stores in product
