@@ -152,7 +152,7 @@
 
 \subsection{Complex Multiplier}
 \begin{frame}
-	\frametitle{Complex Multiplier}
+	\frametitle{Complex Multiplier Math}
 	This is a primitive we use in the butterfly module later. It is tricky due
 	to being fixed-point and signed. \pause Recall that for complex numbers $z$ and $y$,
 	their product is
@@ -163,12 +163,18 @@
 	We need fixed point math to store $w$ values. Fixed point multiplication doubles
 	the binary point (Q2.14 becomes Q4.28) so we must also account for this in the multiplier.
 
+	\begin{block}{Remark}
+		Verilog does not support complex numbers, so I use \texttt{\_re} and
+		\texttt{\_im} suffixes to indicate real and imaginary components 
+		respectively.
+	\end{block}
 \end{frame}
 
 
 \begin{frame}[fragile]
-	\frametitle{Complex Multiplier, Cont.}
-	The crux of the code is as follows (\texttt{WIDTH} and \texttt{FIXED\_POINT} are parameters):
+	\frametitle{Complex Multiplier Implementation}
+	The crux of the code is as follows 
+	(\texttt{WIDTH} and \texttt{FIXED\_POINT} are parameters):
 \begin{minted}{verilog}
 reg signed [2*WIDTH - 1:0] res_re, res_im;
 // the shifted 1 by fixed point -1 is for rounding.
@@ -200,6 +206,56 @@ end
 \begin{block}{Note}
 I use a combinational always block to prevent needing two clocks to get a result.
 \end{block}
+\end{frame}
+
+\subsection{Twiddle Factors}
+
+\begin{frame}
+	\frametitle{Twiddle Factor Math}
+	Twiddle factors can be written in multiple ways:
+	\begin{align*}
+		w_n^k &= e^{-2\pi i k / n} \\
+		      &= \cos(-2\pi k / n) + i\sin(2\pi k / n)
+	\end{align*}
+	\pause
+	\structure{These are periodic functions!}
+
+	We can use this property to compute the factors ahead of time, saving
+	time and space for the hardware implementation.
+	\begin{block}{Remark}
+		Recall that $n$ is the number of points in the FFT, and $k$ is
+		the current "position" along those points. There is lots of
+		room for optimization of twiddle factors.
+	\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Twiddle Factor Generation}
+	We can use a simple python function to generate a single twiddle factor:
+\begin{minted}{python}
+def twiddle(n,k):
+    inner = -2 * math.pi * k / n
+    return (math.cos(inner), math.sin(inner))
+\end{minted}
+This is complemented with a function that converts floats to fixed binary.
+\begin{minted}{python}
+def float_to_fixed_binary(num, n_bits, frac_point):
+    if frac_point >= n_bits - 1:
+        print("ERROR: fraction bits greater than total bits")
+        return "blah"
+    result = int(num * (2 ** frac_point))
+    if num < 0:
+        result = result & ((2 ** n_bits) -1)
+    return f'{result:0{n_bits}b}'
+\end{minted}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Loading Twiddle Factors}
+	To load the twiddle factors into the module, we use the \texttt{\$readmemh}
+	command.
+	
+
 \end{frame}
 
 \section{Verification}
@@ -234,12 +290,12 @@ async def test_cplx(dut):
 	\begin{itemize}
 \item This test is simple, but supported by helper functions
 	that convert python types to inputs for the DUT.
-\item t can use multiple simulator backends, including Synopsys VCS,
+\item \texttt{cocotb} can use multiple simulator backends, including Synopsys VCS,
 	as well as open-source software like Verilator or Icarus Verilog.
 
 \item	Because we use floating point in Python, we need to allow for some tolerance
 	when comparing with fixed-point values from the DUT:
-\begin{minted}{Python}
+\begin{minted}{python}
     res = await get_product(dut)
     expected = n1 * n2
     assert math.isclose(res.real,expected.real, abs_tol=0.00390625)
@@ -255,7 +311,7 @@ async def test_cplx(dut):
 
 \begin{frame}[fragile]
 
-The output of cocotb for a test suite is as follows:
+The output of cocotb for the complex multiplier test suite is as follows:
 \begin{minted}{c}
 ******************************************************************
 ** TEST                                  STATUS  SIM TIME (ns)  **
@@ -272,8 +328,8 @@ The output of cocotb for a test suite is as follows:
 \end{minted}
 
 \begin{block}{Remark}
-	The latter tests use randomly generated complex numbers from Python, in a range where overflow
-	will not occur.
+	The latter tests use randomly generated complex numbers from Python, chosen
+	so that overflow will not occur.
 \end{block}
 \end{frame}
 
@@ -282,9 +338,12 @@ The output of cocotb for a test suite is as follows:
 	\frametitle{Sidenote: Should you use \texttt{cocotb}?}
 	\structure{You should use \texttt{cocotb} iff:}
 	\begin{enumerate}
-		\item The inputs and outputs of your modules are non-trivial (fixed-point, complex, etc)
-		\item Performing the correct operation in Python is easy (complex multiplication)
-		\item A Verilog testbench would use the same operations of your DUT.
+		\item The inputs and outputs of your modules are 
+			non-trivial (fixed-point, complex, etc)
+		\item Performing the correct operation in 
+			Python is easy (complex multiplication)
+		\item A Verilog testbench would use the 
+			same operations of your DUT.
 	\end{enumerate}
 	\structure{You \emph{shouldn't} use \texttt{cocotb} if:}
 
@@ -292,12 +351,27 @@ The output of cocotb for a test suite is as follows:
 		\item You already have working Verilog testbenches.
 		\item Your DUT is not easy to replicate in Python.
 	\end{enumerate}
-
 \end{frame}
 
 \begin{frame}
 	\frametitle{Waveforms}
+	Waveforms are also important to verify timing behavior.
+	\begin{figure}
+		\includegraphics[width=\linewidth]{./../first_report/figures/cplx_mul_waveform.png}
+		\caption{Waveforms from the complex multiplier test suite}
+		\centering
+	\end{figure}
 \end{frame}
+
+\begin{frame}
+	\frametitle{Testing Suite Summary}
+	Currently, test cases are written and fully passing for the complex multiplier
+	and butterfly modules. The FFT module itself is incomplete and has unknown issues.
+\end{frame}
+
+\subsection{Synthesis}
+A quick synthesis run for the complex multiplier was performed to get preliminary results
+for layout parameters.
 
 \section{Summary}
 
