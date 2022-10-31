@@ -25,12 +25,5 @@ always @(posedge clk) begin
 	res_re <= a_re * b_re - a_im * b_im + ROUND_FACTOR;
 	res_im <= a_re * b_im + a_im * b_re + ROUND_FACTOR;
 end
-`ifdef COCOTB_SIM
-initial begin
-  $dumpfile ("cplx.vcd");
-  $dumpvars (0, cplx_mul);
-  #1;
-end
-`endif
 endmodule
 

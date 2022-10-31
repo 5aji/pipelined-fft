@@ -27,7 +27,15 @@ async def convert_array(arr):
 @cocotb.test()
 async def test_twiddle_mem(dut):
     await ReadWrite()
-    assert all([f.is_resolvable for f in dut.tw_f.value])
+    v = dut.tw_f.value
+    cor = tw.make_array(8)
+    cor = [item for tup in cor for item in tup]
+    for idx in range(0,len(v), 2):
+        im = b2fl(str(v[idx+1]),16,8)
+        re = b2fl(str(v[idx]),16,8)
+        assert math.isclose(cor[idx], re,abs_tol=0.00390625)
+
+
 
 
 @cocotb.test()

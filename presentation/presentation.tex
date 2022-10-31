@@ -66,7 +66,7 @@
 			\pause
 			\item Each stage is connected by registers
 			\pause
-			\item Executing a stage takes 1 cycle
+			\item Executing all stages takes 1 cycle
 		\end{enumerate}
 		\column{0.58\linewidth}
 		\onslide
@@ -114,7 +114,7 @@
 
 			
 		\end{tikzpicture}
-		\caption{Example FFT structure where $N=4$.}
+		\caption{Example DIT FFT structure where $N=4$.}
 	\end{figure}
 \end{frame}
 
@@ -124,8 +124,9 @@
 
 \begin{frame}
 	\frametitle{General structure}
-	An FFT is an arrangement of "Butterfly" transforms and twiddle factors.
-	A butterfly transform is a radix-2 DFT with a complex multiplication factor.
+	An FFT is an arrangement of "Butterfly" transforms.
+	A butterfly transform is a radix-2 DFT with a complex multiplication factor called
+	a "twiddle factor".
 	\begin{align*}
 		y_0 &= x_0 + x_1 w_n^k \\
 		y_1 &= x_0 - x_1 w_n^k
@@ -153,9 +154,9 @@
 \subsection{Complex Multiplier}
 \begin{frame}
 	\frametitle{Complex Multiplier Math}
-	This is a primitive we use in the butterfly module later. It is tricky due
-	to being fixed-point and signed. \pause Recall that for complex numbers $z$ and $y$,
-	their product is
+	This is a primitive we use in the butterfly module later. It is tricky
+	due to being fixed-point and signed. \pause Recall that for complex
+	numbers $z = a+bi$ and $y = c + di$, their product is
 	\begin{align*}
 		z y = (ac + bd) + (ad + bc)i
 	\end{align*}
@@ -237,7 +238,7 @@ def twiddle(n,k):
     inner = -2 * math.pi * k / n
     return (math.cos(inner), math.sin(inner))
 \end{minted}
-This is complemented with a function that converts floats to fixed binary.
+This is complemented with a function that converts floats to fixed-point binary strings.
 \begin{minted}{python}
 def float_to_fixed_binary(num, n_bits, frac_point):
     if frac_point >= n_bits - 1:
@@ -250,12 +251,23 @@ def float_to_fixed_binary(num, n_bits, frac_point):
 \end{minted}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 	\frametitle{Loading Twiddle Factors}
-	To load the twiddle factors into the module, we use the \texttt{\$readmemh}
+	To load the twiddle factors into the module, we use the \texttt{\$readmemb}
 	command.
-	
+\begin{minted}{verilog}
+reg [15:0] tw_f [15:0];
+initial $readmemb("rtl/fft8.mem", tw_f);
+\end{minted}
+\pause
+A memory file contains ASCII 0 and 1 without any structure, so we must manually de-interlace it for
+complex numbers. Real and imaginary parts are adjacent to allow for optimization when passing
+to the butterfly transforms.
 
+\pause
+\begin{block}{Remark}
+	This is one of the few valid uses of \texttt{initial} in synthesizable Verilog.
+\end{block}
 \end{frame}
 
 \section{Verification}
@@ -263,7 +275,7 @@ def float_to_fixed_binary(num, n_bits, frac_point):
 \subsection{Simulation \& Testbench}
 \begin{frame}[fragile]
 	\frametitle{Simulation Overview}
-	Complex number arithmetic is challenging to do in Verilog, is there a better way
+	Complex number arithmetic is challenging to do in a Verilog testbench, is there a better way
 	to check for correctness?
 
 	\pause
@@ -366,13 +378,38 @@ The output of cocotb for the complex multiplier test suite is as follows:
 \begin{frame}
 	\frametitle{Testing Suite Summary}
 	Currently, test cases are written and fully passing for the complex multiplier
-	and butterfly modules. The FFT module itself is incomplete and has unknown issues.
+	and butterfly modules. The FFT module itself is incomplete and still has several issues.
 \end{frame}
 
 \subsection{Synthesis}
+\begin{frame}
 A quick synthesis run for the complex multiplier was performed to get preliminary results
 for layout parameters.
+\end{frame}
 
 \section{Summary}
+
+\begin{frame}
+	\frametitle{Important takeaways}
+	\begin{itemize}
+		\item Modular design and testing is important.
+		\item Use parameters to allow for flexibility.
+		\item Other tools can provide more robust test suites.
+	\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+	\frametitle{Remaining Work}
+	There are still several things I would like to add in addition to making
+	the current version fully functional.
+	\begin{itemize}
+		\item Fix current 8-point FFT design.
+		\item Fully-generated FFT (any size, width, fixed point).
+		\item Variable width/fixed-point test suite.
+		\item Further optimization of twiddle factors and multipliers.
+	\end{itemize}
+
+\end{frame}
 
 \end{document}

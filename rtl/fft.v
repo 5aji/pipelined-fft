@@ -10,24 +10,24 @@
 
 module basic_fft8(
 	input clk,
-	input [15:0] x_re [7:0], // x is a 1d array of 8 elements, each 16 bit
-	input [15:0] x_im [7:0],
-	output [15:0] y_re [7:0],
-	output [15:0] y_im [7:0]
+	input signed [15:0] x_re [7:0], // x is a 1d array of 8 elements, each 16 bit
+	input signed [15:0] x_im [7:0],
+	output signed [15:0] y_re [7:0],
+	output signed [15:0] y_im [7:0]
 );
 
 // intermediate value wires.
 // with N=8, we have 3 layers. last one is output layer. first one is input, 
 // so only 2 intermediate layers.
-wire [15:0] inter_re_0 [7:0]; 
-wire [15:0] inter_im_0 [7:0]; 
-wire [15:0] inter_re_1 [7:0]; 
-wire [15:0] inter_im_1 [7:0]; 
+wire signed [15:0] inter_re_0 [7:0]; 
+wire signed [15:0] inter_im_0 [7:0]; 
+wire signed [15:0] inter_re_1 [7:0]; 
+wire signed [15:0] inter_im_1 [7:0]; 
 
 // twiddles.
 // 8 values, real-im-real-im, 4 pairs repeating.
 
-reg [15:0] tw_f [15:0];
+reg signed [15:0] tw_f [15:0];
 initial $readmemb("rtl/fft8.mem", tw_f);
 
 
