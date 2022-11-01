@@ -1,12 +1,37 @@
 \documentclass{beamer}
 
-\title[Pipelined FFT]{A Pipelined FFT Implementation in Verilog}
+\title[Pipelined FFT]{Digital Filter Bank - Pipelined FFT}
 \author{Saji Champlin}
 \institute{University of Minnesota}
 \date{\today}
 \subtitle{EE5327 Project Presentation}
 \usetheme[secheader]{Boadilla}
 \useinnertheme{rectangles}
+
+\usecolortheme{beaver}
+\definecolor{darkred}{RGB}{122, 0, 25}
+
+%\setbeamercolor{palette tertiary}{bg=maroon}
+\setbeamercolor{titlelike}{bg=gray!15!white}
+\setbeamertemplate{itemize items}[default]
+\setbeamertemplate{itemize subitem}[circle]
+\setbeamertemplate{enumerate items}[default]
+
+\setbeamertemplate{blocks}[rounded]
+\setbeamercolor{block body}{bg=gray!15!white}
+\setbeamercolor{block title}{bg=gray!15!white}
+\setbeamercolor{block body alerted}{bg=gray!15!white}
+\setbeamercolor{block title alerted}{bg=gray!15!white}
+\setbeamercolor{block body example}{bg=gray!15!white}
+\setbeamercolor{block title example}{bg=gray!15!white}
+
+\setbeamercolor{item}{fg=darkred}
+\setbeamercolor{subitem}{fg=darkred}
+\setbeamercolor{subsubitem}{fg=darkred}
+
+\setbeamertemplate{title page}[default][rounded=true]
+
+
 % \usefonttheme{professionalfonts}
 \beamertemplatenavigationsymbolsempty
 
@@ -22,6 +47,7 @@
 \usepackage[outputdir=build]{minted}
 \usepackage{tikz}
 \usepackage{wrapfig}
+\usepackage{pgfplots}
 \usepackage{graphicx}
 \usepackage{listings}
 % \usepackage{biblatex}
@@ -47,16 +73,35 @@
 \section{Overview}
 
 \begin{frame}
+	\frametitle{Digital Filter Bank and Motivation}
+	A digital filter bank is a set of band-pass filters that
+	separate a signal into multiple frequency bins.
+
+	The most common way to do this is with an FFT, as
+	it converts the signal into frequency domain,
+	where performing a band-pass filter is simply selecting
+	a range of values on the output.
+\end{frame}
+
+\begin{frame}[fragile]
 	\frametitle{What is an FFT?}
 
 	An FFT (Fast Fourier Transform) is a very efficient way of computing
 	the DFT of a given sequence of values.
 
-	A naive DFT is $O(N^2)$, whereas an FFT is $O(N \log{N})$. This is
-	massive at high values of $N$.
-
-	A classic FFT algorithm is the Cooley-Tukey algorithm, which uses
-	recursion/divide-and-conquer to efficiently compute DFTs.
+	Given $N$ points in a sequence, a naive DFT is $O(N^2)$, whereas an FFT
+	is $O(N \log{N})$. This is massive at high values of $N$.
+	\pause
+	\begin{figure}
+		\centering
+	\begin{tikzpicture}
+		\begin{axis}[ticks=none, axis lines = left, xlabel = \(N\),
+				domain=0:100, samples=100, no marks,height=6cm]
+			\addplot{x^2};
+			\addplot {x * log10(x)};
+		\end{axis}
+	\end{tikzpicture}
+	\end{figure}
 
 \end{frame}
 
@@ -75,6 +120,23 @@
 \end{frame}
 
 \begin{frame}
+	\frametitle{How does an FFT work?}
+	The classic FFT algorithm is a Cooley-Tukey FFT, which is a divide and conquer algorithm.
+
+	\pause
+	This algorithm assumes that $N$ is a power of two. It splits an $N$-point FFT into two $N/2$-point
+	FFTs and an additional $O(N)$ multiplications to combine them:
+
+	\pause
+	\begin{figure}
+		\includegraphics[height=4cm]{DIT-FFT-butterfly.png}
+		\caption{By OhArthits - Own work, CC BY 3.0}
+		\centering
+	\end{figure}
+
+\end{frame}
+
+\begin{frame}
 	\frametitle{What is a Pipelined FFT?}
 	A pipelined FFT is similar to a pipelined CPU:
 	\begin{columns}
@@ -84,13 +146,13 @@
 			\pause
 			\item Each stage is connected by registers
 			\pause
-			\item Executing all stages takes 1 cycle
+			\item Executing all stages takes 1 cycle and is done in parallel.
 		\end{enumerate}
 		\column{0.58\linewidth}
 		\onslide
 		\centering
 		\includegraphics[width=\linewidth]{Pipeline_MIPS.png}
-		\captionof{figure}{MIPS pipeline example.}
+		\captionof{figure}{MIPS 5-stage pipeline example}
 	\end{columns}
 
 \end{frame}
@@ -144,7 +206,8 @@
 	\frametitle{General structure}
 	An FFT is an arrangement of "Butterfly" transforms.
 	A butterfly transform is a radix-2 DFT with a complex multiplication factor called
-	a "twiddle factor".
+	a "twiddle factor" $w_n^k = e^{-2\pi i k / n}$, where $n$ is the number of points,
+	and $k$ is the "position" of the output.
 	\begin{align*}
 		y_0 &= x_0 + x_1 w_n^k \\
 		y_1 &= x_0 - x_1 w_n^k
@@ -167,7 +230,8 @@
 		\end{tikzpicture}
 	\end{figure}
 	The twiddle factor $w$ is used to rotate the values by a given amount depending on the
-	portion of the FFT being calculated. $w_n^k = e^{-2\pi i k / n}$.
+	portion of the FFT being calculated.
+
 \end{frame}
 
 \subsection{Complex Multiplier}
@@ -207,6 +271,11 @@ always @(posedge clk) begin
 end
 \end{minted}
 The round factor is used to improve precision when truncating.
+\pause
+\begin{block}{Remark}
+	All variables/registers are signed. This is to ensure that the Verilog operators
+	work correctly (carry-extension mostly).
+\end{block}
 \end{frame}
 
 \subsection{Butterfly}
@@ -260,13 +329,10 @@ def twiddle(n,k):
 This is complemented with a function that converts floats to fixed-point binary strings.
 \begin{minted}{python}
 def float_to_fixed_binary(num, n_bits, frac_point):
-    if frac_point >= n_bits - 1:
-        print("ERROR: fraction bits greater than total bits")
-        return "blah"
-    result = int(num * (2 ** frac_point))
+    result = int(num * (2 ** frac_point)) # make the result fixed-point
     if num < 0:
-        result = result & ((2 ** n_bits) -1)
-    return f'{result:0{n_bits}b}'
+        result = result & ((2 ** n_bits) -1) #2's comp
+    return f'{result:0{n_bits}b}' #pad it with zeros to length.
 \end{minted}
 \end{frame}
 
@@ -306,12 +372,11 @@ allow for optimization when passing to the butterfly transforms.
 @cocotb.test()
 async def test_cplx(dut):
     cocotb.start_soon(Clock(dut.clk, 1, 'ns').start())
-
     await set_terms(dut, 2 + 1j, 3 + 4j)
     await RisingEdge(dut.clk)
     await ReadWrite()
     res = await get_product(dut)
-    assert res == 2 + 11j
+    assert res == (2 + 1j) * (3 + 4j) #2 + 11j
 \end{minted}
 \captionof{lstlisting}{Simple \texttt{cocotb} test for the complex multiplier}
 \end{frame}
@@ -394,16 +459,52 @@ The output of cocotb for the complex multiplier test suite is as follows:
 	\end{figure}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 	\frametitle{Testing Suite Summary}
 	Currently, test cases are written and fully passing for the complex multiplier
 	and butterfly modules. The FFT module itself is incomplete and still has several issues.
+
 \end{frame}
 
 \subsection{Synthesis}
-\begin{frame}
+\begin{frame}[fragile]
+	\frametitle{Basic Synthesis}
 A quick synthesis run for the complex multiplier was performed to get preliminary results
-for layout parameters.
+for layout parameters and ensure that the Verilog was synthesizable (no unmapped logic).
+
+\begin{minted}{c}
+Combinational area:               5936.041318
+Buf/Inv area:                      477.282434
+Noncombinational area:             292.773895
+Macro/Black Box area:                0.000000
+Net Interconnect area:            1693.132825
+
+Total cell area:                  6228.815213
+Total area:                       7921.948038
+\end{minted}
+\begin{block}{Remark}
+Layout and further optimizations have not been attempted. Furthermore, the FFT itself is still non-functional
+however it is simply interconnects and ROM so it should synthesize easily.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Timing estimations}
+	On this unoptimized design, I set a timing target of 1ns. It barely failed to reach this.
+	Note that 1 nanosecond is insane for most applications.
+
+\begin{minted}{c}
+                     Required        Actual
+Net                 Transition     Transition     Slack
+---------------------------------------------------------
+n791                    1.02           1.09       -0.07  (VIOLATED)
+    PIN :   U902/A3     1.02           1.09       -0.07  (VIOLATED)
+    PIN :   U945/CI     1.02           1.09       -0.07  (VIOLATED)
+
+---------------------------------------------------------
+Total                 1                  -0.07
+\end{minted}
+It may be possible to achieve a 1ns clock with aggressive optimization.
 \end{frame}
 
 \section{Summary}
