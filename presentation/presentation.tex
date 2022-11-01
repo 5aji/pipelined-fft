@@ -7,7 +7,7 @@
 \subtitle{EE5327 Project Presentation}
 \usetheme[secheader]{Boadilla}
 \useinnertheme{rectangles}
-\usefonttheme{professionalfonts}
+% \usefonttheme{professionalfonts}
 \beamertemplatenavigationsymbolsempty
 
 
@@ -49,11 +49,21 @@
 \begin{frame}
 	\frametitle{What is an FFT?}
 
-	An FFT is a very efficient way of computing the DFT of a given sequence of values.
+	An FFT (Fast Fourier Transform) is a very efficient way of computing
+	the DFT of a given sequence of values.
 
-	A naive DFT is $O(N^2)$, whereas an FFT is $O(N \log{N})$. This is massive at high
-	values of $N$.
+	A naive DFT is $O(N^2)$, whereas an FFT is $O(N \log{N})$. This is
+	massive at high values of $N$.
 
+	A classic FFT algorithm is the Cooley-Tukey algorithm, which uses
+	recursion/divide-and-conquer to efficiently compute DFTs.
+
+\end{frame}
+
+
+% applications
+\begin{frame}
+	\frametitle{Applications of FFTs}
 \end{frame}
 
 \begin{frame}
@@ -131,6 +141,7 @@
 		y_0 &= x_0 + x_1 w_n^k \\
 		y_1 &= x_0 - x_1 w_n^k
 	\end{align*}
+	\pause
 	\begin{figure}
 		\centering
 		\begin{tikzpicture}
@@ -260,13 +271,14 @@ reg [15:0] tw_f [15:0];
 initial $readmemb("rtl/fft8.mem", tw_f);
 \end{minted}
 \pause
-A memory file contains ASCII 0 and 1 without any structure, so we must manually de-interlace it for
-complex numbers. Real and imaginary parts are adjacent to allow for optimization when passing
-to the butterfly transforms.
+A memory file contains ASCII 0 and 1 without any structure, so we must manually
+de-interlace it for complex numbers. Real and imaginary parts are adjacent to
+allow for optimization when passing to the butterfly transforms.
 
 \pause
 \begin{block}{Remark}
-	This is one of the few valid uses of \texttt{initial} in synthesizable Verilog.
+	This is one of the few valid uses of \texttt{initial} in synthesizable
+	Verilog.
 \end{block}
 \end{frame}
 
@@ -275,14 +287,13 @@ to the butterfly transforms.
 \subsection{Simulation \& Testbench}
 \begin{frame}[fragile]
 	\frametitle{Simulation Overview}
-	Complex number arithmetic is challenging to do in a Verilog testbench, is there a better way
-	to check for correctness?
+	Complex number arithmetic is challenging to do in a Verilog testbench,
+	is there a better way to check for correctness?
 
 	\pause
 	\structure{Yes!} We can use a tool called \texttt{cocotb} to generate stimulus and
 	test module behavior for correct output in Python.
 
-	\pause
 \begin{minted}{python}
 @cocotb.test()
 async def test_cplx(dut):
@@ -367,7 +378,7 @@ The output of cocotb for the complex multiplier test suite is as follows:
 
 \begin{frame}
 	\frametitle{Waveforms}
-	Waveforms are also important to verify timing behavior.
+	Waveforms are also important to verify approximate timing behavior.
 	\begin{figure}
 		\includegraphics[width=\linewidth]{./../first_report/figures/cplx_mul_waveform.png}
 		\caption{Waveforms from the complex multiplier test suite}
@@ -394,7 +405,7 @@ for layout parameters.
 	\begin{itemize}
 		\item Modular design and testing is important.
 		\item Use parameters to allow for flexibility.
-		\item Other tools can provide more robust test suites.
+		\item Additional tools can provide more robust test suites.
 	\end{itemize}
 
 \end{frame}
@@ -405,9 +416,11 @@ for layout parameters.
 	the current version fully functional.
 	\begin{itemize}
 		\item Fix current 8-point FFT design.
-		\item Fully-generated FFT (any size, width, fixed point).
-		\item Variable width/fixed-point test suite.
+		\item Layout and testability.
+		\item Fully-generated FFT (any $N$, width, fixed point).
+		\item Variable width/fixed point test suite.
 		\item Further optimization of twiddle factors and multipliers.
+		\item Mixed-precision (Q4.14 internal registers, Q2.14 I/O)
 	\end{itemize}
 
 \end{frame}
