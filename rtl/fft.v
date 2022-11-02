@@ -24,19 +24,24 @@ wire signed [15:0] inter_im_0 [7:0];
 wire signed [15:0] inter_re_1 [7:0]; 
 wire signed [15:0] inter_im_1 [7:0]; 
 
+// bit-reversal
+wire signed [15:0] rev_re [7:0];
+wire signed [15:0] rev_im [7:0];
+bit_reorder re_reorder(x_re, rev_re);
+bit_reorder im_reorder(x_im, rev_im);
+
 // twiddles.
 // 8 values, real-im-real-im, 4 pairs repeating.
 
-reg signed [15:0] tw_f [15:0];
+reg signed [15:0] tw_f [0:15];
 initial $readmemb("rtl/fft8.mem", tw_f);
-
 
 // 1st stage, adjacent inputs get butterflied.
 
 genvar i;
 generate for (i = 0; i < 4; i = i + 1 ) begin
 	butterfly bf_layer1(clk, 
-		x_re[2 * i], x_im[2 * i], x_re[2*i+1],x_im[2*i+1], 
+		rev_re[2 * i], rev_im[2 * i], rev_re[2*i+1],rev_im[2*i+1], 
 		tw_f[0], tw_f[1], 
 		inter_re_0[2*i], inter_im_0[2*i], inter_re_0[2*i+1], inter_im_0[2*i+1]
 	);
